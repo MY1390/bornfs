@@ -43,19 +43,19 @@ case class ARFFReader(filename: String) {
   def sparseInstances = {
     instances.enumerateInstances.map { instance =>
       val n = instance.numValues
-      val body: ArrayBuffer[(Symbol, Int)] =
+      val body: ArrayBuffer[Tuple2[Symbol, Int]] =
         for (
           i <- (0 until n - 1).to[ArrayBuffer]
           if instance.value(instance.index(i)).toInt != 0
         ) yield {
           val attr_sym = Symbol(instance.attribute(instance.index(i)).name)
-          Pair(attr_sym, instance.value(instance.index(i)).toInt)
+          Tuple2(attr_sym, instance.value(instance.index(i)).toInt)
         }
       val temp_sym = Symbol(instance.attribute(instance.index(n - 1)).name)
       if (temp_sym == index2attr(instances.numAttributes - 1)) {
         (body, instance.value(instance.index(n - 1)).toInt)
       } else {
-        body += Pair(temp_sym, instance.value(instance.index(n - 1)).toInt)
+        body += Tuple2(temp_sym, instance.value(instance.index(n - 1)).toInt)
         (body, 0)
       }
     }

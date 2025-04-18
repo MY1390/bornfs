@@ -1,4 +1,4 @@
-import scwc._
+import scwc.{Attr, Index, Value}
 import collection.mutable.{ArrayBuffer, HashMap}
 import java.text.DecimalFormat
 
@@ -19,15 +19,15 @@ case class Case(
    windowの実態は、0以外の値を持つ特徴の(index, value)の並び
    */
 
-  var window = row.clone()
+  var window:ArrayBuffer[(Attr, Value)] = row.clone()
 
-  val size = row.size
+  val size: Int = row.size
 
   def apply(i: Index): Value = {
     /*
      window中でインデックスiの特徴の値
      */
-    val j = this.indexOf(i)
+    val j: Int = this.indexOf(i)
     return if (j < 0) 0 else window(j)._2
   }
 
@@ -57,7 +57,7 @@ case class Case(
     /*
      row中で識別子iの特徴の値
      */
-    val j = this.locationOf(a)
+    val j: Int = this.locationOf(a)
     return if (j < 0) 0 else row(j)._2
   }
 
@@ -150,7 +150,7 @@ case class Dataset(
   // The first float number indicates the running time in milli-seconds.
   // The subsequent float numbers are function specific, but maybe describes the arguments.
 
-  val events = ArrayBuffer[(Symbol, Array[Long])]()
+  val events = ArrayBuffer[Tuple2[Symbol, Array[Long]]]()
 
   if (tutorial) {
     println
@@ -625,7 +625,7 @@ case class Dataset(
 
     var start: Long = 0L
     var ellapsed_t: Long = 0L
-    var it_count = 0
+    var it_count: Int = 0
 
     while (true) {
       if (tutorial) {
@@ -650,7 +650,7 @@ case class Dataset(
         order = tempResult._2
 
         ellapsed_t = System.nanoTime() - start
-        events += Pair('sortAttrs, Array(ellapsed_t, lim))
+        events += Tuple2('sortAttrs, Array(ellapsed_t, lim))
         timeSortFeatures += ellapsed_t
 
         start = System.nanoTime()
@@ -658,7 +658,7 @@ case class Dataset(
         sortCases
 
         ellapsed_t = System.nanoTime() - start
-        events += Pair('sortCases, Array(ellapsed_t, lim))
+        events += Tuple2('sortCases, Array(ellapsed_t, lim))
         timeSortInstances += ellapsed_t
       } else if (tutorial) {
         println("This iteration does not perform sorting features.")
@@ -728,7 +728,7 @@ case class Dataset(
       val i = findBorder(delta, lim)
 
       ellapsed_t = System.nanoTime() - start
-      events += Pair('findBorder, Array(ellapsed_t, lim))
+      events += Tuple2('findBorder, Array(ellapsed_t, lim))
       timeSelectFeatures += ellapsed_t
 
       if (i < 0) {
