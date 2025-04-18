@@ -8,7 +8,7 @@ import weka.filters.Filter
 import weka.filters.unsupervised.attribute.Remove
 
 import scala.collection.mutable.{HashMap, HashSet, ArrayBuffer}
-import scala.collection.JavaConversions._
+import scala.collection.JavaConverters._
 
 import java.text.DecimalFormat
 import java.io.{File, OutputStreamWriter, FileOutputStream}
@@ -41,7 +41,7 @@ case class ARFFReader(filename: String) {
   val sparse_instances = sparseInstances
 
   def sparseInstances = {
-    instances.enumerateInstances.map { instance =>
+    instances.enumerateInstances.asScala.map { instance =>
       val n = instance.numValues
       val body: ArrayBuffer[Tuple2[Symbol, Int]] =
         for (
