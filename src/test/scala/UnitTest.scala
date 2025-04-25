@@ -31,8 +31,8 @@ class UnitTest extends AnyFunSuite with Matchers with BeforeAndAfterAll {
   test("dummy test - Confirmation of test data input") {
     println
     println(result.size + " features have been selected.")
-    println
     println("Selected features are: " + selected_attrs.mkString(" "))
-    assert(true)
+    assert(selected_attrs === List('a, 'c, 'f))
+    assert(result.size === 3)
   }
 }
