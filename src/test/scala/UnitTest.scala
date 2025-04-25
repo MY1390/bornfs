@@ -3,7 +3,7 @@ import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import scala.collection.mutable.ArrayBuffer
 
-class DataSetupTest extends AnyFunSuite with Matchers with BeforeAndAfterAll {
+class UnitTest extends AnyFunSuite with Matchers with BeforeAndAfterAll {
 
   var result: Seq[scwc.Attr] = _
   var selected_attrs: List[Symbol] = _
