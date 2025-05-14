@@ -158,7 +158,7 @@ case class Dataset(
     println
     println("Let's learn about how BornFS works.")
   }
-
+  // temp_dict:collection.mutable.Map[Tuple2[ArrayBuffer[Tuple2[Attr, Value]], Value], Int]
   var temp_dict =
     collection.mutable.Map[(ArrayBuffer[(Attr, Value)], Value), Int]()
   for (x <- raw_data) {

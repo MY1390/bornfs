@@ -35,9 +35,11 @@ case class ARFFReader(filename: String) {
     attr2index += Symbol(instances.attribute(index).name) -> index
     index2attr += index -> Symbol(instances.attribute(index).name)
   }
-
-  val numInstances = instances.numInstances
-  val numAttrs = instances.numAttributes
+  // number of data
+  val numInstances: Int = instances.numInstances
+  // number of features + 1
+  val numAttrs: Int = instances.numAttributes
+  // iterator of instance
   val sparse_instances = sparseInstances
 
   def sparseInstances = {
