@@ -206,4 +206,7 @@ bin/
 
 # general
 *.class
-.scalafmt.conf
+
+# Emacs
+.\#*
+*~
