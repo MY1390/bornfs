@@ -37,6 +37,9 @@ case class Case(
      */
     var l = 0
     var u = window.size - 1
+    /*
+     おそらくバグ？
+     */
     if (u < 0 || window(l)._1 > i || window(u)._1 < i) return -1
     if (window(u)._1 == i) return u
     /*

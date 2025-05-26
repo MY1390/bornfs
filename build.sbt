@@ -20,4 +20,9 @@ assemblyMergeStrategy in assembly := {
 }
 // test
 libraryDependencies += "org.scalactic" %% "scalactic" % "3.2.19"
-libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.19" % "test"
+
+libraryDependencies ++= Seq(
+  "org.scalatest" %% "scalatest" % "3.2.15" % Test,
+  "org.scalatestplus" %% "mockito-4-6" % "3.2.15.0" % Test,
+  "org.mockito" % "mockito-core" % "4.6.1" % Test
+)

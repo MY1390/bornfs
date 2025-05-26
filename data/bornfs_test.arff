@@ -1,0 +1,15 @@
+@relation bornfs-test
+@attribute attr1 numeric
+@attribute attr2 numeric
+@attribute attr3 numeric
+@attribute attr4 numeric
+@attribute attr5 numeric
+@attribute class {0,1}
+
+@data
+1,0,1,0,1,0
+0,1,0,1,0,1
+1,1,0,0,1,0
+0,0,1,1,0,1
+1,0,0,1,0,0
+0,1,1,0,1,1
