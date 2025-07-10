@@ -18,9 +18,9 @@ class CaseSpec extends FunSuite {
   }
 
   test("apply method return correct value for existing index") {
-    assertEquals(sampleCase(0), 10)  // First element in window
-    assertEquals(sampleCase(1), 30)  // Second element in window
-    assertEquals(sampleCase(2), 50)  // Third element in window
+    assertEquals(sampleCase(1), 10)  // First element in window
+    assertEquals(sampleCase(3), 30)  // Second element in window
+    assertEquals(sampleCase(5), 50)  // Third element in window
   }
 
   test("it should return 0 for non-existing index") {
@@ -64,13 +64,13 @@ class CaseSpec extends FunSuite {
   }
 
   test("renumber method should correctly renumber window indices") {
-    val order = Array(2, 0, 1)
+    val order = Array(0, 3, 1, 2, 4, 5)
     sampleCase.renumber(order)
     
     // After renumbering, the indices should be reordered
-    assertEquals(sampleCase.window.head._1, 0)  // was index 1, now index 0
-    assertEquals(sampleCase.window(1)._1, 1)     // was index 3, now index 1  
-    assertEquals(sampleCase.window(2)._1, 2)     // was index 5, now index 2
+    assertEquals(sampleCase.window.head._1, 2)  // was index 1, now index 0
+    assertEquals(sampleCase.window(1)._1, 3)     // was index 3, now index 1  
+    assertEquals(sampleCase.window(2)._1, 5)     // was index 5, now index 2
   }
 
   test("compare method should return correct comparison result") {
@@ -78,8 +78,8 @@ class CaseSpec extends FunSuite {
     val case2 = Case(ArrayBuffer((1, 10), (2, 25)), 1, 1)
     val case3 = Case(ArrayBuffer((1, 10), (2, 20)), 1, 1)
     
-    assert(case1.compare(case2, 2) < 0)  // case1 < case2
-    assert(case2.compare(case1, 2) > 0)  // case2 > case1
+    assertEquals(case1.compare(case2, 2), 1)  // case1 < case2
+    assertEquals(case2.compare(case1, 2), -1)  // case2 > case1
     assertEquals(case1.compare(case3, 2), 0)     // case1 == case3
   }
 
