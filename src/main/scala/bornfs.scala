@@ -86,7 +86,7 @@ case class Case(var row: ArrayBuffer[(Attr,Value)], val classLabel: Value, val f
   def renumber(order: Array[Index]): Unit = {
     /*
      order(i)は、現在のwindow中のインデックスiの特徴の、新たなwindowにおけるインデックス
-     orderは、0, ..., rs-1の順列
+     orderは、0, ..., ws-1の順列
      */
     val temp = ArrayBuffer[(Index, Value)]()
     val lim = order.size
