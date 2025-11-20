@@ -4,7 +4,27 @@ import scala.collection.mutable
 import scala.collection.parallel.CollectionConverters._
 import java.text.DecimalFormat
 
-
+/**
+ * BornFSにおける単一のデータケースを表現するクラス
+ * 
+ * スパース表現を用いて、同一の特徴値パターンを持つ複数のインスタンスを
+ * 1つのケースとして集約し、その出現頻度を保持する。
+ * 
+ * @param row         非ゼロ値を持つ特徴の(属性ID, 値)のペアのリスト（昇順ソート済み）
+ * @param classLabel  このケースのクラスラベル
+ * @param frq         このパターンの出現頻度（集約されたインスタンス数）
+ * 
+ * @example
+ * {{{
+ * // 属性1=1, 属性4=1を持ち、クラス0に属する、頻度3のケース
+ * val case1 = Case(ArrayBuffer((1,1), (4,1)), 0, 3)
+ * }}}
+ * 
+ * 主な機能：
+ * - window: 特徴選択の過程で動的に変化する特徴の部分集合を管理
+ * - 辞書式順序での比較により、効率的なソートと分割を実現
+ * - スパース表現により、高次元データでもメモリ効率的に処理
+ */
 case class Case(var row: ArrayBuffer[(Attr,Value)], val classLabel: Value, val frq: Int) {
   //  rowの中は特徴番号の順に昇順にソートされていると仮定する。
   //  以下のコードをいれて、ソートを仮定しなくてもよい。
@@ -141,6 +161,28 @@ case class Case(var row: ArrayBuffer[(Attr,Value)], val classLabel: Value, val f
 
 }
 
+/**
+ * BornFS特徴選択アルゴリズムの実行エンジン
+ * 
+ * 与えられたデータセットに対して、関連性（relevance）とノイズのバランスを考慮した
+ * 最適な特徴部分集合を選択する。エントロピーと相互情報量に基づく評価により、
+ * 最小限の特徴数で最大限の分類情報を保持する特徴集合を発見する。
+ * 
+ * @param raw_data スパース形式のデータ：(非ゼロ特徴のリスト, クラスラベル)のシーケンス
+ * @param sort     特徴の評価基準（0:ratio, 1:noise, 2:relevance, 3:difference, 4:harmonic）
+ * @param tutorial チュートリアルモード（処理の詳細をステップごとに表示）
+ * @param verbose  進捗表示の有無
+ * 
+ * 主要な処理：
+ * - 前向き探索による逐次的な特徴選択
+ * - 動的な特徴の再ソートによる探索効率の向上
+ * - バイナリサーチを用いた高速な境界探索
+ * - エントロピー計算の差分更新による計算量削減
+ * 
+ * アルゴリズムの目標：
+ * - 最小化: H(Selected|Class) - 選択特徴のノイズ
+ * - 制約条件: I(Selected;Class) ≥ threshold × I(Entire;Class)
+ */
 case class Dataset(raw_data: Seq[(ArrayBuffer[(Attr, Value)], Value)], sort: Int, tutorial: Boolean, verbose: Boolean) {
 
   val f = new DecimalFormat("0.0000")

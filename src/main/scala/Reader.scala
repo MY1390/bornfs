@@ -28,48 +28,68 @@ case class MainOption(
 
 case class ARFFReader(filename: String) {
   var instances = new DataSource(filename).getDataSet
-
+  // 属性名 -> インデックス番号のマッピング
   val attr2index = HashMap[Symbol,Int]()
+  // インデックス番号 -> 属性名のマッピング
   val index2attr = HashMap[Int,Symbol]()
+  // 全属性をイテレートして、属性名とインデックスの双方向マップを初期化
+  // これにより、属性名からインデックス、インデックスから属性名への
+  // 高速な変換が可能になる（O(1)のルックアップ）
   (0 until instances.numAttributes).foreach {index =>
     attr2index += Symbol(instances.attribute(index).name) -> index
     index2attr += index -> Symbol(instances.attribute(index).name)
   }
-
+  // 特徴選択の対象となるデータセットのサイズを記録
+  // numInstances: 学習データのサンプル数
+  // numAttrs: 選択対象の特徴数（クラスラベル含む）
   val numInstances  = instances.numInstances
   val numAttrs = instances.numAttributes
   val sparse_instances = sparseInstances
 
+  /**
+   * ARFFデータをスパース表現に変換する
+   * 0以外の値を持つ属性のみを(属性名, 値)のペアとして保持し、メモリ効率を向上
+   * 
+   * @return 各インスタンスを(非ゼロ属性のリスト, クラスラベル)のタプルとして返す
+   */
   def sparseInstances = {
     instances.enumerateInstances().asScala.map { instance =>
       val n = instance.numValues
+      // 最後の属性（通常クラスラベル）以外で、値が0でない属性を収集
       val body: ArrayBuffer[(Symbol, Int)] =
         for(i <- (0 until n - 1).to(mutable.ArrayBuffer)
           if instance.value(instance.index(i)).toInt != 0) yield {
           val attr_sym = Symbol(instance.attribute(instance.index(i)).name)
           (attr_sym, instance.value(instance.index(i)).toInt)
         }
+      
+      // 最後の属性の処理：クラスラベルかどうかを判定
       val temp_sym = Symbol(instance.attribute(instance.index(n - 1)).name)
       if(temp_sym == index2attr(instances.numAttributes - 1)) {
+        // 最後の属性がクラスラベルの場合
         (body, instance.value(instance.index(n - 1)).toInt)
       } else {
+        // 最後の属性もデータ属性の場合（クラスラベルなし）
         body += ((temp_sym, instance.value(instance.index(n - 1)).toInt))
         (body, 0)
       }
     }
   }
 
+  // 特徴選択結果をARFFデータに反映：選択されなかった属性を削除
   def removeUnselectedAttrs(selected_attrs: List[Symbol]): Unit = {
+    // 選択された属性のインデックスを取得し、クラスラベル（最後の属性）も追加
     val remove_list =
       ((for (attr <- selected_attrs) yield (attr2index(attr))) ::: List(instances.numAttributes - 1)).toArray
 
     val filter = new Remove()
-    filter.setAttributeIndicesArray(remove_list)
+    filter.setAttributeIndicesArray(remove_list)  // 削除対象として設定
 
-
+    // setInvertSelection(true)により、削除対象を反転
+    // つまり、remove_listの属性を「保持」し、それ以外を削除
     filter.setInvertSelection(true)
     filter.setInputFormat(instances)
-    instances = Filter.useFilter(instances, filter)
+    instances = Filter.useFilter(instances, filter)  // フィルタを適用してインスタンスを更新
   }
 
   def saveArffFile(output_file_name: String): Unit = {
@@ -82,8 +102,9 @@ case class ARFFReader(filename: String) {
 
 object Main {
 
-  val f = new DecimalFormat("0.0000")
-  val fns = new DecimalFormat("#,### nsec")
+// ログ出力用のフォーマッタ
+  val f = new DecimalFormat("0.0000")      // H(X), I(X;Y), μ_H, μ_G等の表示
+  val fns = new DecimalFormat("#,### nsec") // 各処理ステップの実行時間表示
   def main(args: Array[String]): Unit = {
 
     val parser = new OptionParser[MainOption]("Born Feature Selection") {
@@ -120,46 +141,63 @@ object Main {
       } text("Verbose mode: true (default) or false")
     }
 
-    var threshold = 1.0
-    var hop = 1
-    var in = ""
-    var out = ""
-    var log = "low"
-    var sort = 0 // ratio of relevance to noise
-    var tutorial = false
-    var verbose = true
+    // コマンドラインパラメータのデフォルト値
+    // アルゴリズムパラメータ
+    var threshold = 1.0    // 特徴選択の閾値（相互情報量の比率）
+    var hop = 1           // 特徴再ソートの頻度
+    var sort = 0          // 特徴の評価基準（0: relevance/noise比）
 
+    // ファイルI/O
+    var in = ""           // 入力ARFFファイル
+    var out = ""          // 出力ARFFファイル（オプション）
+
+    // 実行モード
+    var log = "low"       // ログ詳細度
+    var tutorial = false  // チュートリアルモード
+    var verbose = true    // 進捗表示
+
+    // コマンドライン引数を解析してパラメータを設定
     parser.parse(args, MainOption()) match {
       case Some(option) =>
+        // 必須パラメータ
         in = option.in
         out = option.out
+        
+        // アルゴリズムパラメータ
         threshold = option.threshold
         hop = option.hop
+        
+        // ソート基準を文字列から数値に変換
         sort = option.sort match {
-          case "ratio" => 0
-          case "noise" => 1
-          case "relevance" => 2
-          case "difference" => 3
-          case "harmonic" => 4
+          case "ratio" => 0      // relevance/noise比（推奨）
+          case "noise" => 1      // ノイズゲインの負値
+          case "relevance" => 2  // 関連性ゲイン
+          case "difference" => 3 // 関連性 - ノイズ
+          case "harmonic" => 4   // 調和平均
           case _ =>
             println("Wrong specification " + sort)
             println(parser.usage)
             return
         }
+        
+        // ログレベルの検証
         log = option.log
         log match {
-          case "high" =>
-          case "low"  =>
-          case "none" =>
+          case "high" =>  // 詳細ログ（エントロピー値など含む）
+          case "low"  =>  // 標準ログ（選択結果と基本統計）
+          case "none" =>  // ログ出力なし
           case _ =>
             println("Wrong specification " + log)
             println(parser.usage)
             return
         }
+        
+        // 実行モード設定
         tutorial = option.tutorial
         verbose = option.verbose
+        
       case None =>
-        return
+        return  // 引数解析失敗時は終了
     }
 
 
@@ -196,9 +234,18 @@ object Main {
 
     print("Reading the file ... ")
     val db = ARFFReader(in)
-    val data = db.sparse_instances.to(mutable.ArrayBuffer).map { x =>
-      (x._1.map(y => (db.attr2index(y._1), y._2)), x._2)
-    }.toSeq
+    // スパースインスタンスをBornFS内部形式に変換
+    val data = db.sparse_instances
+      .to(mutable.ArrayBuffer)  // 可変配列に変換（処理効率のため）
+      .map { x =>
+        // x._1: 非ゼロ属性のリスト [(Symbol, Int)]
+        // x._2: クラスラベル
+        (
+          x._1.map(y => (db.attr2index(y._1), y._2)),  // 属性名をインデックスに変換
+          x._2  // クラスラベルはそのまま保持
+        )
+      }
+      .toSeq  // 不変のシーケンスに変換
     println("finished.")
     println("Found "+db.numInstances+" instances and "+db.numAttrs+" features including class.")
 
