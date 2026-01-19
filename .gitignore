@@ -206,3 +206,6 @@ bin/
 
 # general
 *.class
+
+# CLAUDE.md
+CLAUDE.md
