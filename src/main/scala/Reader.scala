@@ -12,6 +12,7 @@ import scala.jdk.CollectionConverters._
 
 import java.text.DecimalFormat
 import java.io.{File, OutputStreamWriter, FileOutputStream}
+import scala.io.Source
 
 import scopt.OptionParser
 
@@ -97,6 +98,102 @@ case class ARFFReader(filename: String) {
     arff_saver.setInstances(instances)
     arff_saver.setFile(new File(output_file_name))
     arff_saver.writeBatch()
+  }
+}
+
+/**
+ * CSVファイルを読み込むためのリーダー
+ * ARFFReaderと同様のインターフェースを提供
+ *
+ * @param filename 読み込むCSVファイルのパス
+ */
+case class CSVReader(filename: String) {
+  // CSVファイルを読み込む
+  private val lines = Source.fromFile(filename).getLines().toList
+
+  // ヘッダー行から属性名を取得
+  private val headers = if (lines.nonEmpty) lines.head.split(",").map(_.trim) else Array[String]()
+
+  // データ行を取得（ヘッダーを除く）
+  private val dataLines = if (lines.length > 1) lines.tail else List[String]()
+
+  // 属性名 -> インデックス番号のマッピング
+  val attr2index = HashMap[Symbol, Int]()
+  // インデックス番号 -> 属性名のマッピング
+  val index2attr = HashMap[Int, Symbol]()
+
+  // 属性名とインデックスの双方向マップを初期化
+  headers.zipWithIndex.foreach { case (name, index) =>
+    attr2index += Symbol(name) -> index
+    index2attr += index -> Symbol(name)
+  }
+
+  // データセットのサイズを記録
+  val numInstances = dataLines.length
+  val numAttrs = headers.length
+
+  // スパース表現に変換されたインスタンス
+  val sparse_instances = sparseInstances
+
+  /**
+   * CSVデータをスパース表現に変換する
+   * 0以外の値を持つ属性のみを(属性名, 値)のペアとして保持し、メモリ効率を向上
+   *
+   * @return 各インスタンスを(非ゼロ属性のリスト, クラスラベル)のタプルとして返す
+   */
+  def sparseInstances = {
+    dataLines.map { line =>
+      val values = line.split(",").map(_.trim)
+
+      // 最後の属性（通常クラスラベル）以外で、値が0でない属性を収集
+      val body: ArrayBuffer[(Symbol, Int)] =
+        (0 until values.length - 1).to(mutable.ArrayBuffer).flatMap { i =>
+          val value = values(i).toInt
+          if (value != 0) {
+            val attr_sym = Symbol(headers(i))
+            Some((attr_sym, value))
+          } else {
+            None
+          }
+        }
+
+      // 最後の属性をクラスラベルとして扱う
+      val classLabel = if (values.length > 0) values.last.toInt else 0
+
+      (body, classLabel)
+    }
+  }
+
+  /**
+   * 選択された属性以外を削除した新しいCSVファイルを保存
+   *
+   * @param selected_attrs 選択された属性のリスト
+   * @param output_file_name 出力先のCSVファイルパス
+   */
+  def saveCsvFile(selected_attrs: List[Symbol], output_file_name: String): Unit = {
+    // 選択された属性のインデックスを取得
+    val selected_indices = selected_attrs.map(attr => attr2index(attr))
+    // クラスラベル（最後の属性）のインデックスを追加
+    val indices_to_keep = (selected_indices :+ (headers.length - 1)).sorted
+
+    val writer = new OutputStreamWriter(new FileOutputStream(output_file_name), "utf-8")
+
+    try {
+      // ヘッダー行を書き込む
+      val selected_headers = indices_to_keep.map(i => headers(i))
+      writer.write(selected_headers.mkString(",") + "\n")
+
+      // データ行を書き込む
+      dataLines.foreach { line =>
+        val values = line.split(",").map(_.trim)
+        val selected_values = indices_to_keep.map(i => values(i))
+        writer.write(selected_values.mkString(",") + "\n")
+      }
+
+      println(s"選択された特徴量を含むCSVファイルを ${output_file_name} に保存しました。")
+    } finally {
+      writer.close()
+    }
   }
 }
 
